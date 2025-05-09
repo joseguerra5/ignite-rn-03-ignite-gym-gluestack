@@ -3,7 +3,9 @@ import {
   Heading,
   Image,
   ScrollView,
+  set,
   Text,
+  useToast,
   VStack,
 } from '@gluestack-ui/themed'
 
@@ -15,9 +17,69 @@ import Logo from '@assets/logo.svg'
 
 import { Input } from '@components/Input'
 import { Button } from '@components/Button'
+import { Controller, useForm } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
+import * as yup from 'yup'
+import { useAuth } from '@hooks/useAuth'
+import { AppError } from '@utils/AppError'
+import { ToastMessage } from '@components/ToastMessage'
+import { useState } from 'react'
+
+type FormDataProps = {
+  email: string
+  password: string
+}
+
+const signInSchema = yup.object({
+  email: yup.string().required('Informe o e-mail.').email('E-mail inválido.'),
+  password: yup
+    .string()
+    .required('Informe a senha.')
+    .min(6, 'A senha deve ter pelo menos seis dígitos.'),
+})
 
 export function SignIn() {
+  const { singIn } = useAuth()
+  const toast = useToast()
+  const [isLoading, setIsLoading] = useState(false)
   const navigation = useNavigation<AuthNavigatorRoutesProps>()
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(signInSchema),
+  })
+
+  async function handleSignIn({ email, password }: FormDataProps) {
+    try {
+      setIsLoading(true)
+      await singIn(email, password)
+    } catch (error) {
+      const isAppError = error instanceof AppError
+
+      const title = isAppError
+        ? error.message
+        : 'Não foi possível entrar. Tente novamente mais tarde.'
+
+      setIsLoading(false)
+      toast.show({
+        render: ({ id }) => {
+          return (
+            <ToastMessage
+              title={title}
+              id={id}
+              onClose={() => toast.close(id)}
+              action="error"
+            />
+          )
+        },
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   function handleNewAccount() {
     navigation.navigate('signUp')
@@ -50,14 +112,41 @@ export function SignIn() {
           <Center gap="$2">
             <Heading color="$gray100">Acesse sua conta</Heading>
 
-            <Input
-              placeholder="E-mail"
-              keyboardType="email-address"
-              autoCapitalize="none"
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  placeholder="E-mail"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  onChangeText={onChange}
+                  errorMessage={errors.email?.message}
+                  value={value}
+                />
+              )}
             />
-            <Input placeholder="Senha" secureTextEntry />
 
-            <Button title="Acessar" />
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <Input
+                  placeholder="Senha"
+                  secureTextEntry
+                  autoCapitalize="none"
+                  onChangeText={onChange}
+                  errorMessage={errors.password?.message}
+                  value={value}
+                />
+              )}
+            />
+
+            <Button
+              title="Acessar"
+              onPress={handleSubmit(handleSignIn)}
+              isLoading={isLoading}
+            />
           </Center>
 
           <Center flex={1} justifyContent="flex-end" marginTop="$4">

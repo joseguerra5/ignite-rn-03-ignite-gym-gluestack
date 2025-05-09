@@ -5,6 +5,7 @@ import {
   ScrollView,
   Text,
   VStack,
+  set,
   useToast,
 } from '@gluestack-ui/themed'
 import { yupResolver } from '@hookform/resolvers/yup'
@@ -42,6 +43,7 @@ const signUpSchema = yup.object({
 })
 
 export function SignUp() {
+  const [isLoading, setIsLoading] = useState(false)
   const toast = useToast()
   const {
     control,
@@ -59,18 +61,32 @@ export function SignUp() {
 
   async function handleSignUp({ name, email, password }: FormDataProps) {
     try {
-      const response = await api.post('/users', {
+      setIsLoading(true)
+      await api.post('/users', {
         name,
         email,
         password,
       })
-      console.log(response.data)
+      toast.show({
+        render: ({ id }) => {
+          return (
+            <ToastMessage
+              title="Usuário criado com sucesso!"
+              description="Agora você pode fazer login na sua conta."
+              id={id}
+              onClose={() => toast.close(id)}
+              action="success"
+            />
+          )
+        },
+      })
+      navigation.navigate('signIn')
     } catch (error) {
       const isAppError = error instanceof AppError
       const title = isAppError
         ? error.message
         : 'Não foi possível criar a conta. Tente novamente mais tarde'
-
+      setIsLoading(false)
       toast.show({
         render: ({ id }) => {
           return (
@@ -174,6 +190,7 @@ export function SignUp() {
             <Button
               title="Criar e acessar"
               onPress={handleSubmit(handleSignUp)}
+              isLoading={isLoading}
             />
           </Center>
 
