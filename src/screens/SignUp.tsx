@@ -21,6 +21,7 @@ import { api } from '@services/api'
 import { useNavigation } from '@react-navigation/native'
 import { AppError } from '@utils/AppError'
 import { ToastMessage } from '@components/ToastMessage'
+import { useState } from 'react'
 
 type FormDataProps = {
   name: string
