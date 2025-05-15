@@ -33,6 +33,7 @@ export function Home() {
       const groups = await api.get('/groups')
 
       setGroups(groups.data)
+      setGroupSelected(groups.data[0])
     } catch (error) {
       const isAppError = error instanceof AppError
       const title = isAppError
